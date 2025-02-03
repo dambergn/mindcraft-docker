@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  minecraft:
+    image: itzg/minecraft-server
+    ports:
+      # - 25565:25565 #Default minecraft server port
+      - 55916:25565
+    environment:
+      EULA: "TRUE"
+      TYPE: "VANILLA"
+      VERSION: 1.20.4
+      INIT_MEMORY: 1024M
+      MAX_MEMORY: 4G
+      # MAX_BUILD_HEIGHT: 256
+      # VIEW_DISTANCE: 15
+      # LEVEL_TYPE: LARGEBIOMES
+      # MAX_PLAYERS: 100
+      # CONSOLE: "false"
+    tty: true
+    stdin_open: true
+    restart: unless-stopped
+    volumes:
+      - ./minecraft-data:/data
+  mindcraft:
+    image: node:latest
+    working_dir: /app
+    volumes:
+      - .:/app
+    command: node main.js
+    ports:
+      - "4000-4003:3000-3003" # see the view from the camera mounted on your bot head: http://localhost:4000/
+    depends_on:
+      - minecraft
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://minecraft:55916/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+  viaproxy: #use this service to connect to an unsupported minecraft server versions. more info: ./services/viaproxy/README.md
+    image: ghcr.io/viaversion/viaproxy:latest
+    volumes:
+      - ./services/viaproxy:/app/run
+    ports:
+      - "25568:25568"
+    depends_on:
+      - mindcraft
+    profiles:
+      - viaproxy
